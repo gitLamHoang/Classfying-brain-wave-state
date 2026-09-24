@@ -1,0 +1,125 @@
+{
+  "data_kind": "synthetic_only",
+  "scientific_performance_claim": false,
+  "generated_participants": 12,
+  "windows_per_class_per_participant": 4,
+  "generated_windows": 96,
+  "prediction_windows": 16,
+  "commands": [
+    "uv sync --frozen --python 3.12 --extra dev",
+    "uv run python scripts/generate_sample_data.py --output-dir data/generated --participants 12 --samples-per-class 4",
+    "uv run python scripts/train_model.py --features-csv data/generated/eeg_features_grouped.csv --group-column participant_id --test-size 0.25",
+    "uv run python scripts/predict_window.py --raw-txt data/generated/eeg_raw_awake_sample.txt --model models/svm_eeg_state.joblib"
+  ],
+  "metrics": {
+    "validation": {
+      "strategy": "participant_disjoint",
+      "train_groups": 9,
+      "test_groups": 3,
+      "group_overlap": 0,
+      "seed": 42,
+      "requested_test_fraction": 0.25,
+      "tuning_folds": [
+        {
+          "fold": 1,
+          "n_train": 56,
+          "n_validation": 16,
+          "train_groups": 7,
+          "test_groups": 2,
+          "group_overlap": 0
+        },
+        {
+          "fold": 2,
+          "n_train": 56,
+          "n_validation": 16,
+          "train_groups": 7,
+          "test_groups": 2,
+          "group_overlap": 0
+        },
+        {
+          "fold": 3,
+          "n_train": 56,
+          "n_validation": 16,
+          "train_groups": 7,
+          "test_groups": 2,
+          "group_overlap": 0
+        },
+        {
+          "fold": 4,
+          "n_train": 56,
+          "n_validation": 16,
+          "train_groups": 7,
+          "test_groups": 2,
+          "group_overlap": 0
+        },
+        {
+          "fold": 5,
+          "n_train": 64,
+          "n_validation": 8,
+          "train_groups": 8,
+          "test_groups": 1,
+          "group_overlap": 0
+        }
+      ],
+      "split_sha256": "e91e830cd4b212f926eb953c6a475def0e7f2c79da574b347b815aa12384eecd",
+      "probabilities_calibrated": false
+    },
+    "feature_columns": [
+      "delta_power",
+      "theta_power",
+      "alpha_power",
+      "beta_power",
+      "alpha_beta_ratio",
+      "theta_beta_ratio",
+      "delta_beta_ratio",
+      "theta_alpha_ratio",
+      "delta_alpha_ratio",
+      "slow_fast_ratio"
+    ],
+    "train_accuracy": 1.0,
+    "test_accuracy": 1.0,
+    "n_train": 72,
+    "n_test": 24,
+    "labels": [
+      "awake",
+      "sleepy"
+    ],
+    "best_params": {
+      "svc__C": 0.1,
+      "svc__gamma": "scale",
+      "svc__kernel": "rbf"
+    },
+    "cv_accuracy": 1.0,
+    "classification_report": {
+      "awake": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "sleepy": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 24.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 24.0
+      }
+    },
+    "input_sha256": [
+      "20018f830057c088cc7815452a8cd9b9b255f17d7e99f05a39698f3cfce47878"
+    ],
+    "group_column": "participant_id"
+  }
+}

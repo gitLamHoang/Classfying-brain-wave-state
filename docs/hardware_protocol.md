@@ -32,7 +32,8 @@ Do not commit personally identifiable participant data to GitHub. Keep raw recor
 2. Run a 10-second test recording and check that the file contains numeric values only.
 3. Use the same window length during training and prediction.
 4. Keep labels simple and consistent: for example, `awake` and `sleepy`.
-5. Save model metrics with the same commit used to train the model.
+5. Keep all sessions from a participant under one stable, pseudonymous participant ID. Train with `--group-column participant_id`; split before model selection.
+6. Save model metrics with the same commit used to train the model.
 
 ## Optional serial recording
 

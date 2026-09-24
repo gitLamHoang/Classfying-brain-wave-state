@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.DS_Store
+models/
+reports/
+data/generated/
+data/private/
+*.joblib
+data/raw/

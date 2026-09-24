@@ -1,22 +1,20 @@
-.PHONY: install test lint sample train predict clean
+.PHONY: install test lint sample train predict
 
 install:
-	python -m pip install -e ".[dev]"
+	uv sync --frozen --python 3.12 --extra dev
 
 test:
-	pytest -q
+	uv run pytest -q
 
 lint:
-	ruff check src scripts tests
+	uv run ruff check src scripts tests
+	uv run ruff format --check src scripts tests
 
 sample:
-	python scripts/generate_sample_data.py --output-dir data/sample
+	uv run python scripts/generate_sample_data.py --output-dir data/generated --participants 12 --samples-per-class 4
 
 train:
-	python scripts/train_model.py --features-csv data/sample/eeg_features_sample.csv --model-out models/svm_eeg_state.joblib --reports-dir reports
+	uv run python scripts/train_model.py --features-csv data/generated/eeg_features_grouped.csv --group-column participant_id --test-size 0.25
 
 predict:
-	python scripts/predict_window.py --raw-txt data/sample/eeg_raw_awake_sample.txt --model models/svm_eeg_state.joblib --output-csv reports/sample_predictions.csv
-
-clean:
-	rm -f models/*.joblib reports/*.json reports/*.csv reports/figures/*.png
+	uv run python scripts/predict_window.py --raw-txt data/generated/eeg_raw_awake_sample.txt --model models/svm_eeg_state.joblib

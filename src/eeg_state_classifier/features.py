@@ -101,8 +101,8 @@ def make_windows(
     values = np.asarray(samples, dtype=float)
     if values.ndim != 1:
         raise ValueError("samples must be a 1-D array")
-    window_size = int(round(window_seconds * sampling_rate))
-    stride_size = int(round(stride_seconds * sampling_rate))
+    window_size = round(window_seconds * sampling_rate)
+    stride_size = round(stride_seconds * sampling_rate)
     if window_size <= 0 or stride_size <= 0:
         raise ValueError("window and stride must be positive")
     if len(values) < window_size:
@@ -148,8 +148,7 @@ def extract_features(
     freqs, psd = signal.welch(values, fs=sampling_rate, nperseg=nperseg)
 
     powers = {
-        band: _bandpower(freqs, psd, low, high)
-        for band, (low, high) in BAND_DEFINITIONS.items()
+        band: _bandpower(freqs, psd, low, high) for band, (low, high) in BAND_DEFINITIONS.items()
     }
 
     delta = powers["delta"]

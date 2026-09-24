@@ -14,13 +14,17 @@ from eeg_state_classifier.modeling import load_model
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run sliding-window EEG-state prediction.")
-    parser.add_argument("--raw-txt", type=Path, required=True, help="Raw EEG text file, one sample per line.")
+    parser.add_argument(
+        "--raw-txt", type=Path, required=True, help="Raw EEG text file, one sample per line."
+    )
     parser.add_argument("--model", type=Path, required=True, help="Trained .joblib model.")
     parser.add_argument("--output-csv", type=Path, default=Path("reports/predictions.csv"))
     parser.add_argument("--sampling-rate", type=float, default=512.0)
     parser.add_argument("--window-seconds", type=float, default=15.0)
     parser.add_argument("--stride-seconds", type=float, default=1.0)
-    parser.add_argument("--no-filter", action="store_true", help="Disable 0.5-40 Hz band-pass filter.")
+    parser.add_argument(
+        "--no-filter", action="store_true", help="Disable 0.5-40 Hz band-pass filter."
+    )
     return parser.parse_args()
 
 
@@ -41,7 +45,9 @@ def main() -> None:
             sampling_rate=args.sampling_rate,
             apply_filter=not args.no_filter,
         )
-        x = pd.DataFrame([[features[column] for column in FEATURE_COLUMNS]], columns=FEATURE_COLUMNS)
+        x = pd.DataFrame(
+            [[features[column] for column in FEATURE_COLUMNS]], columns=FEATURE_COLUMNS
+        )
         prediction = model.predict(x)[0]
         row: dict[str, object] = {
             "start_seconds": window.start_sample / args.sampling_rate,

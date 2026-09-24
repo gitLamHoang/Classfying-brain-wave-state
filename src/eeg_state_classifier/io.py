@@ -33,14 +33,26 @@ def read_raw_txt(path: str | Path) -> np.ndarray:
     return np.asarray(samples, dtype=float)
 
 
-def load_feature_table(path: str | Path, label_column: str = "label") -> tuple[pd.DataFrame, pd.Series]:
-    """Load a feature table and split it into X/y."""
+def load_training_table(
+    path: str | Path, label_column: str = "label", group_column: str | None = None
+) -> tuple[pd.DataFrame, pd.Series, pd.Series | None]:
+    """Load features, labels, and optional participant metadata separately."""
+    if group_column == label_column:
+        raise ValueError("Group and label columns must be different")
+    # Preserve IDs such as 001 and 01 instead of merging them through integer parsing.
+    df = pd.read_csv(path, dtype={group_column: "string"} if group_column else None)
+    required = [label_column] + ([group_column] if group_column else [])
+    missing = set(required) - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns in {path}: {sorted(missing)}")
+    return df.drop(columns=required), df[label_column], df[group_column] if group_column else None
 
-    df = pd.read_csv(path)
-    if label_column not in df.columns:
-        raise ValueError(f"Expected label column {label_column!r} in {path}")
-    x = df.drop(columns=[label_column])
-    y = df[label_column]
+
+def load_feature_table(
+    path: str | Path, label_column: str = "label"
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Load the legacy ungrouped synthetic feature format."""
+    x, y, _ = load_training_table(path, label_column)
     return x, y
 
 

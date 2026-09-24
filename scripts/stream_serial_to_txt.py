@@ -16,7 +16,9 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Record numeric serial values to a text file.")
-    parser.add_argument("--port", required=True, help="Serial port, for example COM3 or /dev/ttyUSB0.")
+    parser.add_argument(
+        "--port", required=True, help="Serial port, for example COM3 or /dev/ttyUSB0."
+    )
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--seconds", type=float, default=60)
     parser.add_argument("--out", type=Path, required=True)
@@ -34,7 +36,10 @@ def main() -> None:
     deadline = time.time() + args.seconds
     count = 0
 
-    with serial.Serial(args.port, args.baud, timeout=1) as ser, args.out.open("w", encoding="utf-8") as handle:
+    with (
+        serial.Serial(args.port, args.baud, timeout=1) as ser,
+        args.out.open("w", encoding="utf-8") as handle,
+    ):
         while time.time() < deadline:
             line = ser.readline().decode("utf-8", errors="ignore").strip()
             if not line:

@@ -20,7 +20,9 @@ def test_extract_features_returns_expected_columns() -> None:
 def test_make_windows_uses_expected_window_count() -> None:
     sampling_rate = 10
     samples = np.arange(50)
-    windows = list(make_windows(samples, sampling_rate=sampling_rate, window_seconds=2, stride_seconds=1))
+    windows = list(
+        make_windows(samples, sampling_rate=sampling_rate, window_seconds=2, stride_seconds=1)
+    )
 
     assert len(windows) == 4
     assert windows[0].start_sample == 0
