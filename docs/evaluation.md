@@ -1,4 +1,6 @@
-# Evaluation contract
+# Original single-channel evaluation contract
+
+This page describes the legacy synthetic/hardware workflow. The real 64-channel public-data experiment uses a separate [frozen protocol](real_eeg_benchmark.md).
 
 ## Unit of independence
 

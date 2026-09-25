@@ -13,7 +13,7 @@ jobs:
         with:
           version: "0.11.21"
           enable-cache: true
-      - run: uv sync --frozen --python 3.12 --extra dev
+      - run: uv sync --frozen --python 3.12 --extra dev --extra benchmark
       - run: uv run ruff check src scripts tests
       - run: uv run ruff format --check src scripts tests
       - run: uv run pytest -q

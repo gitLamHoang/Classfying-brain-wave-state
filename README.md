@@ -2,75 +2,77 @@
 
 [![Checks](https://github.com/gitLamHoang/Classfying-brain-wave-state/actions/workflows/ci.yml/badge.svg)](https://github.com/gitLamHoang/Classfying-brain-wave-state/actions/workflows/ci.yml)
 
-**From a raw sensor recording to a reproducible classification experiment—with participants kept separate during evaluation.**
+**An auditable EEG experiment system: from verified recordings to predictions on unseen participants.**
 
-Small EEG prototypes can look accurate when overlapping windows from the same person appear in both training and testing. This project turns a hardware + ML prototype into an inspectable signal-processing pipeline and makes that evaluation boundary explicit.
+EEG windows from the same person are correlated. A random row split can make a model look more useful than it is. This Python project keeps participants separate throughout model selection and evaluation, then packages the selected model with its exact feature schema and provenance.
 
-**Status:** research prototype. Public recordings and participant IDs are synthetic. They demonstrate working software, not clinical effectiveness or performance on people. No real-participant accuracy is claimed.
+The current real-data experiment distinguishes **eyes-open from eyes-closed baseline recordings** in PhysioNet's EEG Motor Movement/Imagery Dataset. It extends an earlier single-channel prototype; it does not measure sleep or drowsiness.
 
-[Run the demo](#run-the-demo) · [Evaluation design](docs/evaluation.md) · [Measured synthetic run](docs/evidence/grouped_synthetic.json) · [Product direction](docs/product.md)
+[Experiment protocol](docs/real_eeg_benchmark.md) · [Frozen configuration](configs/physionet_eyes_protocol.json) · [Engineering decisions](docs/product.md) · [Original synthetic demo](docs/legacy_demo.md)
 
-## What you can inspect in two minutes
+## Built end to end
 
-| Question | Evidence |
+| Stage | Implementation |
 |---|---|
-| Does it run from raw signal to prediction? | CI generates signals, trains the grouped model, and predicts sliding windows. |
-| Can one participant appear on both sides? | Outer holdout and every tuning fold check for zero participant overlap. |
-| Can held-out data influence preprocessing? | Scaling stays inside the training pipeline; a test perturbs held-out features and verifies unchanged scaling and model selection. |
-| Is the result reproducible? | Locked environment, fixed seed, input hash, split fingerprint, feature names, and fold counts accompany metrics. |
+| Acquire | Concurrent HTTPS downloads, retries, atomic writes, cached-file rechecks, publisher SHA-256 verification |
+| Prepare | MNE EDF reader; fixed channel/rate checks; SciPy filtering and Welch spectra; explicit quality-control audit |
+| Represent | 512 spectral features from 64 channels; participant, condition, run and time metadata excluded from predictors |
+| Select | Eight fixed candidates across dummy, logistic, RBF SVM and random forest; five participant-disjoint folds; training-only scaling |
+| Evaluate | One untouched participant holdout; confusion matrix and participant metrics; 2,000 participant-cluster bootstrap samples |
+| Ship | Versioned model artifact, schema-checked batch CLI, source/input/lock hashes, immutable experiment outputs |
 
-## Run the demo
+```mermaid
+flowchart LR
+    A[218 verified EDF recordings] --> B[Fixed signal processing]
+    B --> C[512-feature epochs + provenance]
+    C --> D[87 training participants]
+    C --> E[22 held-out participants]
+    D --> F[Grouped model selection]
+    F --> G[Versioned model artifact]
+    G --> H[One final holdout evaluation]
+    E --> H
+    G --> I[Schema-checked batch prediction]
+```
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:
+## Reproduce the real-data experiment
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run on CPU:
 
 ```bash
 git clone https://github.com/gitLamHoang/Classfying-brain-wave-state.git
 cd Classfying-brain-wave-state
-uv sync --frozen --python 3.12 --extra dev
-uv run python scripts/generate_sample_data.py \
-  --output-dir data/generated --participants 12 --samples-per-class 4
-uv run python scripts/train_model.py \
-  --features-csv data/generated/eeg_features_grouped.csv \
-  --group-column participant_id --test-size 0.25
-uv run python scripts/predict_window.py \
-  --raw-txt data/generated/eeg_raw_awake_sample.txt \
-  --model models/svm_eeg_state.joblib
+uv sync --frozen --python 3.12 --extra dev --extra benchmark
+
+uv run python scripts/prepare_physionet.py \
+  --config configs/physionet_eyes_protocol.json \
+  --raw-dir data/raw/physionet \
+  --output-dir data/processed/physionet
+
+uv run python scripts/benchmark_physionet.py \
+  --features data/processed/physionet/features.csv \
+  --manifest data/processed/physionet/features_manifest.json \
+  --output-dir reports/physionet-eyes-v1
+
+uv run python scripts/predict_benchmark.py \
+  --model reports/physionet-eyes-v1/model.joblib \
+  --features data/processed/physionet/features.csv \
+  --output reports/physionet-eyes-v1/batch_predictions.csv
 ```
 
-The verified demo creates **96 synthetic windows across 12 synthetic IDs**, holds out **3 IDs / 24 windows**, and tunes on the remaining **9 IDs / 72 windows** using five group-disjoint folds. Prediction emits **16 windows** from a 30-second generated recording. Labels are engineered into the synthetic signals, so their easy separability is not evidence of real EEG accuracy.
+The final command demonstrates batch inference over the prepared feature table; it is **not** another evaluation. The benchmark report scores only held-out participants. Use fresh preparation and benchmark output directories for a new run. Approximately 278 MB of source EDFs are downloaded. To use the dataset's official AWS mirror, add `--mirror-base-url https://physionet-open.s3.amazonaws.com/eegmmidb/1.0.0/` to preparation; publisher hashes remain authoritative.
 
-Generated models, recordings, and reports stay out of Git. Review local `reports/metrics.json`, `reports/confusion_matrix.csv`, and `reports/predictions.csv` after running. A compact, explicitly synthetic [run record](docs/evidence/grouped_synthetic.json) is committed for comparison.
+Raw recordings, feature tables, model binaries and individual predictions are ignored by Git. Compact evidence and aggregate reports are committed. Only load trusted `joblib` artifacts; loading Python serialized objects can execute code.
 
-## How it works
+## Repository map
 
-```mermaid
-flowchart LR
-    A[Serial recording or synthetic signal] --> B[15-second windows]
-    B --> C[Band-pass filter and Welch PSD]
-    C --> D[10 bandpower and ratio features]
-    D --> E[Participant-disjoint holdout]
-    E --> F[Grouped tuning on training participants]
-    F --> G[Scaler + SVM artifact]
-    G --> H[Window predictions and evaluation audit]
-```
-
-The Python package uses NumPy/SciPy for signal processing, pandas for feature tables, and scikit-learn for training. Four bandpowers—delta, theta, alpha, beta—and six ratios provide an understandable baseline. Model inference uses the same ordered feature schema as training. Probabilities are not exported: this baseline has no separately validated probability calibration.
-
-| Location | Responsibility |
+| File | Responsibility |
 |---|---|
-| `src/eeg_state_classifier/features.py` | Filtering, windowing, and feature extraction |
-| `src/eeg_state_classifier/modeling.py` | Split checks, grouped tuning, evaluation, persistence |
-| `src/eeg_state_classifier/io.py` | Separate participant metadata from predictors |
-| `scripts/` | Generate, train, predict, and optionally record serial input |
-| `tests/` | Signal invariants, metadata handling, and validation isolation |
-
-## Bring a feature table
-
-Use numeric feature columns, a `label` column, and a stable `participant_id` shared across **all sessions from the same participant**. Pass `--group-column participant_id`; it is removed before fitting. Raw-signal prediction expects the ten canonical columns in `FEATURE_COLUMNS`; other feature schemas can use the training library separately. Missing IDs, non-finite features, missing classes in either side of a split, and invalid tuning folds fail before model fitting. See the [input contract and split policy](docs/evaluation.md).
-
-The original `--awake-csv` / `--sleepy-csv` format and ungrouped sample still run, but their metrics are labeled `row_split_synthetic_smoke_only`. They cannot support claims about new participants. Use `--no-tune` for a fixed baseline when there are enough participants for a holdout but too few for grouped tuning.
-
-Only load model files you created or trust: joblib deserialization executes Python objects.
+| `src/eeg_state_classifier/physionet.py` | Verified acquisition, EDF validation, multichannel feature extraction, quality/provenance manifests |
+| `src/eeg_state_classifier/benchmark.py` | Frozen protocol validation, grouped selection, holdout, confidence intervals, artifacts |
+| `src/eeg_state_classifier/inference.py` | Strict feature alignment, finite-value checks, batch labels and audit sidecars |
+| `configs/physionet_eyes_protocol.json` | Pre-fit experiment contract, including exact signal processing and model candidates |
+| `features.py`, `modeling.py`, `io.py` | Original ten-feature single-channel workflow, kept separate |
+| `tests/` | Signal invariants, corrupt-source handling, schema failures, participant isolation and provenance checks |
 
 ## Development
 
@@ -80,12 +82,12 @@ uv run ruff check src scripts tests
 uv run ruff format --check src scripts tests
 ```
 
-CI runs these checks and the complete synthetic demo on Python 3.12. The lockfile pins dependency versions; `pip install -e ".[dev]"` remains available for exploratory environments.
+CI runs offline unit tests and the complete original synthetic demo using Python 3.12 and locked dependencies. It does not redownload the public cohort or repeatedly open the scientific holdout. The legacy synthetic scores test software behavior and are never presented as performance on real participants.
 
-## Limits and next experiment
+## Interpretation
 
-This is an offline, single-channel prototype. The zero-phase filter uses future samples inside a completed window; it is not a validated low-latency streaming classifier. SVM training is intended for small feature tables and has not been load-benchmarked. Group separation helps prevent one leakage source; it does not fix weak labels, signal artifacts, or cohort bias.
+This is an offline research benchmark. Baseline run order is fixed, so condition and run effects are confounded; same-dataset participant separation does not establish external or cross-device validity. Zero-phase filtering uses future samples within each recording. The fixed quality checks do not remove every physiological artifact. The experiment supports no diagnosis, sleep-detection, live-streaming or state-of-the-art accuracy claim. See [full methodology and limitations](docs/real_eeg_benchmark.md).
 
-The next scientific step is a consented dataset with participant/session metadata, a predefined evaluation protocol, and simpler baseline comparisons. The next product step is testing the experiment workflow with student researchers. Neither user demand nor medical utility has been validated. [Design tradeoffs and next milestones](docs/product.md) · [Hardware collection notes](docs/hardware_protocol.md)
+Data: [PhysioNet EEG Motor Movement/Imagery Dataset 1.0.0](https://physionet.org/content/eegmmidb/1.0.0/), Schalk (2009), DOI [10.13026/C28G6P](https://doi.org/10.13026/C28G6P), Open Data Commons Attribution License v1.0. Full scholarly attribution is in the methodology.
 
-Initial work was developed with guidance from Professor Trinh Van Chien, School of Information and Communication Technology, Hanoi University of Science and Technology.
+The original hardware/ML project was developed with guidance from Professor Trinh Van Chien, School of Information and Communication Technology, Hanoi University of Science and Technology. The public multichannel benchmark is a subsequent engineering extension.

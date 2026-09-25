@@ -1,30 +1,28 @@
 # Product hypothesis and engineering decisions
 
-## Who might use this?
+## Intended user and working scope
 
-A student researcher building a low-cost EEG prototype needs a short, inspectable path from a recording to an experiment they can explain. The working product slice is: collect or generate → extract features → train with participant isolation → inspect an audit → predict completed windows. This intended audience is a hypothesis; no interviews, adoption, or demand are claimed.
+A student researcher needs to turn EEG recordings into an experiment they can inspect and reproduce. The working slice is acquire → validate → extract → select → evaluate → predict. This audience remains a hypothesis; no adoption or user interviews are claimed.
 
-A useful first user study would observe researchers importing a table with participant IDs, understanding a split rejection, and tracing a prediction back to the feature schema. Success would mean completing those tasks without editing library code. Record actual observations before expanding the interface.
+The implementation now includes a full public-cohort experiment, not only synthetic fixtures. It handles 218 source files, multichannel signal processing, explicit participant isolation, bounded model selection, uncertainty estimates and schema-checked inference without a UI.
 
-## What exists today?
+## Architecture and tradeoffs
 
-- A reusable Python signal-processing and training package with CLI entry points.
-- Optional serial capture plus synthetic signals for hardware-free review.
-- Participant-disjoint holdout and grouped model selection with explicit failure paths.
-- Locked dependencies, CI, a runnable demo, unit tests, and compact synthetic evidence.
+**Acquisition and preparation are separate from fitting.** Network retries, checksum failures and malformed EDFs fail before any model selection. Source hashes, per-recording QC counts and preparation-code hashes bind each feature table to the experiment that created it. Output reuse is rejected to prevent stale success artifacts from masquerading as a completed rerun.
 
-## Why this architecture?
+**Keep metadata out of predictors.** Run labels are needed to audit the task, and participant IDs define the split, but neither enters the 512-dimensional feature matrix. Fitted scaling lives inside each training fold. Every participant's recordings and windows remain together.
 
-A scikit-learn pipeline keeps preprocessing coupled to the model. Explicit metadata separation prevents a participant identifier from becoming a predictor. Single-process, bounded 12-configuration tuning is easy to reproduce on a laptop. Input hashes and fold audits make experiments reviewable without publishing private recordings or model binaries.
+**Use a bounded, inspectable comparison.** Eight predefined candidates cover a dummy classifier, linear logistic regression, nonlinear RBF SVM and random forest. This is a useful baseline comparison for the available cohort, not a search for the largest model. The configuration was committed before the first fit; selection is written to disk before the final holdout is evaluated.
 
-A service or distributed system would add operations before there is a demonstrated need. For larger experiments, feature extraction is separable by recording and could produce partitioned tables; training could then consume a versioned manifest. Those are future interfaces, not current throughput claims. Kernel SVM fitting will become a constraint as the number of windows grows; benchmark against linear models before scaling hardware.
+**Report uncertainty at the correct unit.** Four-second windows are correlated within a participant. The confidence intervals resample whole participants and recompute the pooled metric, alongside participant-level scores. They quantify uncertainty within the held-out cohort, not generalization to new devices or populations.
 
-## Next milestones, in order
+**Batch first.** A CLI and a versioned artifact make input contracts and failures easy to test. A web service or UI would add operations without solving a demonstrated user need. The current zero-phase preprocessing is explicitly offline; streaming would require a different signal-processing design and a new evaluation.
 
-1. Validate the workflow with student researchers and document concrete points of confusion.
-2. Obtain appropriately consented data with stable participant and session IDs; document collection and labeling procedures.
-3. Freeze a real-data protocol with baselines, participant-weighted metrics, and uncertainty intervals before evaluation.
-4. Add artifact detection and signal review where observed data problems justify them.
-5. Benchmark memory and latency on representative recordings; choose batch or online interfaces using those measurements.
+## Next useful experiments
 
-Medical diagnosis, driver safety interventions, calibrated risk scores, and real-time clinical monitoring are outside the demonstrated scope.
+1. Observe student researchers importing data, understanding rejected inputs and tracing outputs to source recordings.
+2. Evaluate a separately collected cohort with randomized condition order to address run-order confounding and dataset shift.
+3. Compare artifact handling under a new predefined protocol; preserve the current result as historical evidence.
+4. Measure workload and latency on target hardware before designing online inference.
+
+The original single-channel serial collection and synthetic demo remain available as a separate workflow. Medical diagnosis, driver safety interventions and calibrated clinical risk scores are outside the demonstrated scope.
