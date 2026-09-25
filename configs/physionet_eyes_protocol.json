@@ -7,7 +7,10 @@
   "task": "baseline eyes-open versus eyes-closed; not drowsiness or diagnosis",
   "subject_first": 1,
   "subject_last": 109,
-  "runs": {"1": "eyes_open", "2": "eyes_closed"},
+  "runs": {
+    "1": "eyes_open",
+    "2": "eyes_closed"
+  },
   "sampling_rate_hz": 160,
   "expected_eeg_channels": 64,
   "filter_low_hz": 1.0,
@@ -16,17 +19,52 @@
   "discard_start_seconds": 2.0,
   "window_seconds": 4.0,
   "stride_seconds": 4.0,
-  "bands_hz": {"delta": [1.0, 4.0], "theta": [4.0, 8.0], "alpha": [8.0, 13.0], "beta": [13.0, 30.0]},
+  "bands_hz": {
+    "delta": [
+      1.0,
+      4.0
+    ],
+    "theta": [
+      4.0,
+      8.0
+    ],
+    "alpha": [
+      8.0,
+      13.0
+    ],
+    "beta": [
+      13.0,
+      30.0
+    ]
+  },
   "feature_specification": "Per-channel log10 absolute power in four bands plus four relative band powers; 512 features for 64 channels. Relative denominator is integrated 1-40 Hz Welch PSD. Features use volts from MNE.",
   "split_seed": 20260924,
   "test_fraction": 0.2,
   "inner_folds": 5,
   "selection_metric": "balanced_accuracy",
   "candidates": {
-    "dummy": {"strategy": "most_frequent"},
-    "logistic": {"C": [0.1, 1.0, 10.0]},
-    "svm_rbf": {"C": [0.1, 1.0, 10.0], "gamma": "scale"},
-    "random_forest": {"n_estimators": 200, "min_samples_leaf": 2}
+    "dummy": {
+      "strategy": "most_frequent"
+    },
+    "logistic": {
+      "C": [
+        0.1,
+        1.0,
+        10.0
+      ]
+    },
+    "svm_rbf": {
+      "C": [
+        0.1,
+        1.0,
+        10.0
+      ],
+      "gamma": "scale"
+    },
+    "random_forest": {
+      "n_estimators": 200,
+      "min_samples_leaf": 2
+    }
   },
   "bootstrap_replicates": 2000,
   "bootstrap_unit": "held-out participant",
@@ -38,5 +76,106 @@
     "Report selected model and dummy on final holdout; no further tuning after opening it.",
     "Reject malformed or unverifiable files; report fixed signal-QC exclusions. Do not silently skip missing participants.",
     "Offline zero-phase filtering is not online inference. Baseline run identity is confounded with condition and recorded in fixed order. Same-dataset holdout is not external validation."
+  ],
+  "expected_channel_names": [
+    "af3",
+    "af4",
+    "af7",
+    "af8",
+    "afz",
+    "c1",
+    "c2",
+    "c3",
+    "c4",
+    "c5",
+    "c6",
+    "cp1",
+    "cp2",
+    "cp3",
+    "cp4",
+    "cp5",
+    "cp6",
+    "cpz",
+    "cz",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "f5",
+    "f6",
+    "f7",
+    "f8",
+    "fc1",
+    "fc2",
+    "fc3",
+    "fc4",
+    "fc5",
+    "fc6",
+    "fcz",
+    "fp1",
+    "fp2",
+    "fpz",
+    "ft7",
+    "ft8",
+    "fz",
+    "iz",
+    "o1",
+    "o2",
+    "oz",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "p7",
+    "p8",
+    "po3",
+    "po4",
+    "po7",
+    "po8",
+    "poz",
+    "pz",
+    "t10",
+    "t7",
+    "t8",
+    "t9",
+    "tp7",
+    "tp8"
+  ],
+  "welch": {
+    "window": "hann",
+    "nperseg": 320,
+    "noverlap": 160,
+    "nfft": 320,
+    "detrend": "constant",
+    "scaling": "density",
+    "average": "mean"
+  },
+  "integration": "trapezoid on low <= frequency < high, including the 1-40 Hz total-power denominator",
+  "power_floor_volts_squared": 1e-20,
+  "filter_scope": "per entire recording, zero-phase SOS, before start trim and non-overlapping epochs; no learned preprocessing",
+  "quality_control": {
+    "nonfinite_recording": "exclude all candidate windows; fail preparation if any participant loses either class",
+    "flat_epoch": "exclude if any raw channel has exact zero peak-to-peak before filtering",
+    "amplitude_threshold_volts": null,
+    "sampling_rate_mismatch": "hard failure",
+    "channel_schema_mismatch": "hard failure",
+    "source_mismatch": "hard failure",
+    "missing_recording": "hard failure"
+  },
+  "inner_cv": {
+    "class": "StratifiedGroupKFold",
+    "n_splits": 5,
+    "shuffle": true,
+    "random_state": 20260924
+  },
+  "random_forest_seed": 20260924,
+  "bootstrap_seed": 20260924,
+  "primary_holdout_statistic": "pooled-window balanced accuracy; resample complete held-out participants and recompute the same pooled statistic",
+  "secondary_holdout_statistics": [
+    "pooled accuracy",
+    "pooled macro F1",
+    "unweighted mean participant balanced accuracy"
   ]
 }
