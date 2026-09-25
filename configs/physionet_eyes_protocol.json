@@ -1,0 +1,42 @@
+{
+  "protocol_version": "1.0",
+  "dataset": "PhysioNet EEG Motor Movement/Imagery Dataset",
+  "dataset_version": "1.0.0",
+  "dataset_url": "https://physionet.org/content/eegmmidb/1.0.0/",
+  "source_base_url": "https://physionet.org/files/eegmmidb/1.0.0/",
+  "task": "baseline eyes-open versus eyes-closed; not drowsiness or diagnosis",
+  "subject_first": 1,
+  "subject_last": 109,
+  "runs": {"1": "eyes_open", "2": "eyes_closed"},
+  "sampling_rate_hz": 160,
+  "expected_eeg_channels": 64,
+  "filter_low_hz": 1.0,
+  "filter_high_hz": 40.0,
+  "filter_order": 4,
+  "discard_start_seconds": 2.0,
+  "window_seconds": 4.0,
+  "stride_seconds": 4.0,
+  "bands_hz": {"delta": [1.0, 4.0], "theta": [4.0, 8.0], "alpha": [8.0, 13.0], "beta": [13.0, 30.0]},
+  "feature_specification": "Per-channel log10 absolute power in four bands plus four relative band powers; 512 features for 64 channels. Relative denominator is integrated 1-40 Hz Welch PSD. Features use volts from MNE.",
+  "split_seed": 20260924,
+  "test_fraction": 0.2,
+  "inner_folds": 5,
+  "selection_metric": "balanced_accuracy",
+  "candidates": {
+    "dummy": {"strategy": "most_frequent"},
+    "logistic": {"C": [0.1, 1.0, 10.0]},
+    "svm_rbf": {"C": [0.1, 1.0, 10.0], "gamma": "scale"},
+    "random_forest": {"n_estimators": 200, "min_samples_leaf": 2}
+  },
+  "bootstrap_replicates": 2000,
+  "bootstrap_unit": "held-out participant",
+  "notes": [
+    "Freeze before fitting. Do not change subjects, preprocessing, candidates, split, or selection after seeing holdout results.",
+    "Subject allocation is GroupShuffleSplit with split_seed and test_fraction; feature preparation does not inspect model predictions.",
+    "All participant windows remain in the same partition and every inner fold. Fit scalers only on training folds.",
+    "Choose model solely from mean inner grouped cross-validation balanced accuracy; deterministic alphabetical name tie break.",
+    "Report selected model and dummy on final holdout; no further tuning after opening it.",
+    "Reject malformed or unverifiable files; report fixed signal-QC exclusions. Do not silently skip missing participants.",
+    "Offline zero-phase filtering is not online inference. Baseline run identity is confounded with condition and recorded in fixed order. Same-dataset holdout is not external validation."
+  ]
+}
