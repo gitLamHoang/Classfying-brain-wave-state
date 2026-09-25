@@ -24,7 +24,7 @@ def main() -> None:
     if report.get("validation_status") != "FINAL_FROZEN_PROTOCOL_FULL_109_PARTICIPANTS":
         raise ValueError("This evidence figure requires the full frozen benchmark")
     selected = report["final_holdout"]["selected"]
-    candidates = report["selection"]["candidate_results"]
+    candidates = {item["candidate"]: item for item in report["selection"]["candidate_results"]}
     ordered = sorted(candidates, key=lambda name: candidates[name]["mean_balanced_accuracy"])
     names = [name.replace("_", " ") for name in ordered]
     means = [100 * candidates[name]["mean_balanced_accuracy"] for name in ordered]
@@ -58,7 +58,12 @@ def main() -> None:
     right.set_yticks([0, 1], labels)
     right.set_xlabel("Predicted condition")
     right.set_ylabel("Recorded condition")
-    right.set_title("Final holdout · 22 unseen participants", loc="left", pad=14)
+    holdout_participants = len(report["split"]["validation_participant_ids"])
+    holdout_windows = report["split"]["n_validation_windows"]
+    resamples = selected["confidence_intervals"]["replicates"]
+    right.set_title(
+        f"Final holdout · {holdout_participants} unseen participants", loc="left", pad=14
+    )
     score = 100 * selected["balanced_accuracy"]
     interval = selected["confidence_intervals"]["intervals"]["balanced_accuracy"]
     fig.suptitle(
@@ -72,7 +77,7 @@ def main() -> None:
         0.03,
         0.015,
         f"95% participant-cluster CI: {100 * interval['low']:.1f}–{100 * interval['high']:.1f}%"
-        " · 2,000 resamples · 616 held-out windows\n"
+        f" · {resamples:,} resamples · {holdout_windows:,} held-out windows\n"
         "PhysioNet EEGMMIDB 1.0.0 · same-dataset offline evaluation; fixed run-order confounding remains.",
         fontsize=9,
         color="#405265",

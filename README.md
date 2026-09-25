@@ -34,6 +34,16 @@ flowchart LR
     G --> I[Schema-checked batch prediction]
 ```
 
+## Measured result
+
+The frozen experiment retained **3,052 windows from 109 participants** (218 recordings, 64 EEG channels, 512 features). Five-fold participant-disjoint selection chose **RBF SVM (C=1)** from eight fixed candidates using only 87 training participants.
+
+On **22 unseen participants / 616 windows**, the selected model achieved **79.9% balanced accuracy**, compared with **50.0%** for the majority-class baseline. The 95% participant-cluster bootstrap interval was **72.7–86.2%** (2,000 resamples). This is same-dataset, offline eyes-open/eyes-closed evaluation; fixed run-order confounding remains.
+
+![Grouped selection and final held-out confusion matrix](docs/evidence/physionet/benchmark_summary.png)
+
+[Full measured report](docs/evidence/physionet/report.json) · [Selection recorded before holdout](docs/evidence/physionet/selection_before_holdout.json) · [Source and feature provenance](docs/evidence/physionet/features_manifest.json)
+
 ## Reproduce the real-data experiment
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run on CPU:
